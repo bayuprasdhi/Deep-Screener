@@ -8,7 +8,7 @@ import requests
 
 # Page config
 
-st.set_page_config(page_title=“SCALPIFY V1”, layout=“wide”, page_icon=“🚀”)
+st.set_page_config(page_title="SCALPIFY V1", layout="wide", page_icon="🚀")
 
 # Title
 
