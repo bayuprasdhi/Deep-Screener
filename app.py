@@ -120,7 +120,7 @@ def scan_market(exchange, tf, batch_size=3):
         ]
         
         # LIMIT: Scan max 200 pairs untuk stabilitas
-        perpetual_pairs = all_pairs[:200]
+        perpetual_pairs = all_pairs[:590]
         
         total_pairs = len(perpetual_pairs)
         status_text.text(f"Found {total_pairs} perpetual pairs to scan (limited for stability)...")
