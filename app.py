@@ -112,18 +112,23 @@ def scan_market(exchange, tf, batch_size=3):
     try:
         # Get all perpetual markets
         markets = exchange.load_markets()
+        
+        # Filter: perpetual swap dengan settle USDT, exclude leverage tokens
+        leverage_keywords = ['1000', '2X', '3X', '5X', '10X', 'BEAR', 'BULL', 'HEDGE', 'UP', 'DOWN']
+        
         all_pairs = [
             symbol for symbol, market in markets.items()
             if market.get('swap') 
             and market.get('settle') == 'USDT'
             and market.get('active')
+            and not any(keyword in symbol.upper() for keyword in leverage_keywords)
         ]
         
-        # LIMIT: Scan max 200 pairs untuk stabilitas
-        perpetual_pairs = all_pairs[:590]
+        # Scan ALL pairs (no limit)
+        perpetual_pairs = all_pairs
         
         total_pairs = len(perpetual_pairs)
-        status_text.text(f"Found {total_pairs} perpetual pairs to scan (limited for stability)...")
+        status_text.text(f"Found {total_pairs} perpetual pairs to scan (excluding leverage tokens)...")
         
         momentum_bull = []
         momentum_bear = []
@@ -138,8 +143,8 @@ def scan_market(exchange, tf, batch_size=3):
             
             for symbol in batch:
                 try:
-                    # Fetch OHLCV - REDUCED from 600 to 250
-                    ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=250)
+                    # Fetch OHLCV - use 500 candles for better accuracy
+                    ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=500)
                     df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
                     
                     # Calculate Slow Signal (Trend)
@@ -386,4 +391,4 @@ if (st.session_state.momentum_bull or st.session_state.momentum_bear or
 
 # Footer
 st.markdown("---")
-st.markdown("**SCALPIFY V1 - Gate.io Edition** | Optimized for stability | Max 200 pairs")
+st.markdown("**SCALPIFY V1 - Gate.io Edition** | All perpetual pairs | Leverage tokens excluded")
