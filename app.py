@@ -5,13 +5,14 @@ import numpy as np
 from datetime import datetime
 import time
 import requests
+import gc
 
 # Page config
 st.set_page_config(page_title="SCALPIFY V1", layout="wide", page_icon="🚀")
 
 # Title
 st.title("🚀 SCALPIFY - Smart Trading Screener V1")
-st.markdown("**Bybit Perpetual Futures Scanner**")
+st.markdown("**Gate.io Perpetual Futures Scanner**")
 
 # ========== SIDEBAR SETTINGS ==========
 st.sidebar.header("⚙️ Configuration")
@@ -97,8 +98,8 @@ def send_telegram_alert(message):
     except:
         pass
 
-def scan_market(exchange, tf, batch_size=10):
-    """Scan all perpetual pairs"""
+def scan_market(exchange, tf, batch_size=3):
+    """Scan all perpetual pairs - OPTIMIZED FOR STABILITY"""
     
     # Placeholders
     momentum_bull_container = st.empty()
@@ -111,29 +112,34 @@ def scan_market(exchange, tf, batch_size=10):
     try:
         # Get all perpetual markets
         markets = exchange.load_markets()
-        perpetual_pairs = [
+        all_pairs = [
             symbol for symbol, market in markets.items()
-            if market.get('swap') and market.get('settle') == 'USDT'
-            and 'USDC' not in symbol and 'DAI' not in symbol
+            if market.get('swap') 
+            and market.get('settle') == 'USDT'
+            and market.get('active')
         ]
         
+        # LIMIT: Scan max 200 pairs untuk stabilitas
+        perpetual_pairs = all_pairs[:200]
+        
         total_pairs = len(perpetual_pairs)
-        status_text.text(f"Found {total_pairs} perpetual pairs to scan...")
+        status_text.text(f"Found {total_pairs} perpetual pairs to scan (limited for stability)...")
         
         momentum_bull = []
         momentum_bear = []
         pullback_bull = []
         pullback_bear = []
         scanned = 0
+        errors = 0
         
-        # Scan in batches
+        # Scan in SMALL batches (3 pairs per batch untuk avoid rate limit)
         for i in range(0, total_pairs, batch_size):
             batch = perpetual_pairs[i:i+batch_size]
             
             for symbol in batch:
                 try:
-                    # Fetch OHLCV
-                    ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=600)
+                    # Fetch OHLCV - REDUCED from 600 to 250
+                    ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=250)
                     df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
                     
                     # Calculate Slow Signal (Trend)
@@ -213,16 +219,23 @@ def scan_market(exchange, tf, batch_size=10):
                                 f"Time: {datetime.now().strftime('%H:%M WIB')}"
                             )
                     
-                    time.sleep(0.12)  # Rate limit
+                    # IMPORTANT: Slow down! Wait 0.3 seconds between requests
+                    time.sleep(0.3)
                 
                 except Exception as e:
+                    errors += 1
+                    # If too many errors, stop to avoid ban
+                    if errors > 20:
+                        status_text.error(f"⚠️ Too many errors ({errors}), stopping scan...")
+                        break
+                    time.sleep(0.5)  # Wait longer on error
                     continue
                 
                 scanned += 1
                 progress = scanned / total_pairs
-                progress_bar.progress(progress)
+                progress_bar.progress(min(progress, 1.0))
                 status_text.text(
-                    f"Scanning: {scanned}/{total_pairs} | "
+                    f"Scanning: {scanned}/{total_pairs} (Errors: {errors}) | "
                     f"Momentum: {len(momentum_bull)}🟢 {len(momentum_bear)}🔴 | "
                     f"Pullback: {len(pullback_bull)}🎯 {len(pullback_bear)}🎯"
                 )
@@ -235,18 +248,24 @@ def scan_market(exchange, tf, batch_size=10):
                         momentum_bull_container, momentum_bear_container,
                         pullback_bull_container, pullback_bear_container
                     )
+                    # Clean memory every 10 scans
+                    gc.collect()
                 
                 # Stop if all targets reached
                 if (len(momentum_bull) >= 25 and len(momentum_bear) >= 25 and
                     len(pullback_bull) >= 25 and len(pullback_bear) >= 25):
                     break
             
+            # Stop if too many errors
+            if errors > 20:
+                break
+                
             if (len(momentum_bull) >= 25 and len(momentum_bear) >= 25 and
                 len(pullback_bull) >= 25 and len(pullback_bear) >= 25):
                 break
         
         progress_bar.progress(1.0)
-        status_text.text(f"✅ Scan complete!")
+        status_text.text(f"✅ Scan complete! Scanned {scanned} pairs, {errors} errors")
         display_results(
             momentum_bull, momentum_bear,
             pullback_bull, pullback_bear,
@@ -367,4 +386,4 @@ if (st.session_state.momentum_bull or st.session_state.momentum_bear or
 
 # Footer
 st.markdown("---")
-st.markdown("**SCALPIFY V1** | Rate limit compliant | Perpetual USDT pairs only")
+st.markdown("**SCALPIFY V1 - Gate.io Edition** | Optimized for stability | Max 200 pairs")
