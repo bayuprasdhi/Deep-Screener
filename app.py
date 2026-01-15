@@ -98,7 +98,7 @@ def send_telegram_alert(message):
     except:
         pass
 
-def scan_market(exchange, tf, batch_size=3):
+def scan_market(exchange, tf, batch_size=5):
     """Scan all perpetual pairs - OPTIMIZED FOR STABILITY"""
     
     # Placeholders
@@ -143,9 +143,13 @@ def scan_market(exchange, tf, batch_size=3):
             
             for symbol in batch:
                 try:
-                    # Fetch OHLCV - use 500 candles for better accuracy
-                    ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=500)
+                    # Fetch OHLCV - 420 candles (balance antara akurasi & stabilitas)
+                    ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=420)
                     df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                    
+                    # Skip pairs dengan data tidak cukup
+                    if len(df) < 420:
+                        continue
                     
                     # Calculate Slow Signal (Trend)
                     slow_line = calculate_signal(df, slow_fast, slow_slow, slow_signal)
@@ -224,8 +228,8 @@ def scan_market(exchange, tf, batch_size=3):
                                 f"Time: {datetime.now().strftime('%H:%M WIB')}"
                             )
                     
-                    # IMPORTANT: Slow down! Wait 0.3 seconds between requests
-                    time.sleep(0.3)
+                    # IMPORTANT: Slow down! Wait 0.25 seconds between requests
+                    time.sleep(0.25)
                 
                 except Exception as e:
                     errors += 1
@@ -245,15 +249,15 @@ def scan_market(exchange, tf, batch_size=3):
                     f"Pullback: {len(pullback_bull)}🎯 {len(pullback_bear)}🎯"
                 )
                 
-                # Update display progressively
-                if scanned % 10 == 0:
+                # Update display progressively (setiap 15 pairs)
+                if scanned % 15 == 0:
                     display_results(
                         momentum_bull, momentum_bear,
                         pullback_bull, pullback_bear,
                         momentum_bull_container, momentum_bear_container,
                         pullback_bull_container, pullback_bear_container
                     )
-                    # Clean memory every 10 scans
+                    # Clean memory every 15 scans
                     gc.collect()
                 
                 # Stop if all targets reached
