@@ -229,7 +229,7 @@ def scan_market(exchange, tf, batch_size=5):
                             )
                     
                     # IMPORTANT: Slow down! Wait 0.2 seconds (bisa lebih cepat!)
-                    time.sleep(0.9)
+                    time.sleep(0.25)
                 
                 except Exception as e:
                     errors += 1
