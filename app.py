@@ -173,7 +173,7 @@ def scan_market(exchange, tf, batch_size=5):
                                         slow_current < -slow_power and
                                         slow_color == 'maroon')
                     
-                    if is_momentum_bull and len(momentum_bull) < 25:
+                    if is_momentum_bull and len(momentum_bull) < 50:  # Naikin limit jadi 50
                         momentum_bull.append(symbol)
                         if enable_alerts:
                             send_telegram_alert(
@@ -184,7 +184,7 @@ def scan_market(exchange, tf, batch_size=5):
                                 f"Time: {datetime.now().strftime('%H:%M WIB')}"
                             )
                     
-                    elif is_momentum_bear and len(momentum_bear) < 25:
+                    elif is_momentum_bear and len(momentum_bear) < 50:  # Naikin limit jadi 50
                         momentum_bear.append(symbol)
                         if enable_alerts:
                             send_telegram_alert(
@@ -204,7 +204,7 @@ def scan_market(exchange, tf, batch_size=5):
                                         slow_color in ['maroon', 'red'] and
                                         fast_current > 0)
                     
-                    if is_pullback_bull and len(pullback_bull) < 25:
+                    if is_pullback_bull and len(pullback_bull) < 50:  # Naikin limit jadi 50
                         pullback_bull.append(symbol)
                         if enable_alerts:
                             send_telegram_alert(
@@ -216,7 +216,7 @@ def scan_market(exchange, tf, batch_size=5):
                                 f"Time: {datetime.now().strftime('%H:%M WIB')}"
                             )
                     
-                    elif is_pullback_bear and len(pullback_bear) < 25:
+                    elif is_pullback_bear and len(pullback_bear) < 50:  # Naikin limit jadi 50
                         pullback_bear.append(symbol)
                         if enable_alerts:
                             send_telegram_alert(
@@ -228,8 +228,8 @@ def scan_market(exchange, tf, batch_size=5):
                                 f"Time: {datetime.now().strftime('%H:%M WIB')}"
                             )
                     
-                    # IMPORTANT: Slow down! Wait 0.25 seconds between requests
-                    time.sleep(0.25)
+                    # IMPORTANT: Slow down! Wait 0.2 seconds (bisa lebih cepat!)
+                    time.sleep(0.2)
                 
                 except Exception as e:
                     errors += 1
@@ -260,17 +260,17 @@ def scan_market(exchange, tf, batch_size=5):
                     # Clean memory every 15 scans
                     gc.collect()
                 
-                # Stop if all targets reached
-                if (len(momentum_bull) >= 25 and len(momentum_bear) >= 25 and
-                    len(pullback_bull) >= 25 and len(pullback_bear) >= 25):
+                # Stop if all targets reached (50 each)
+                if (len(momentum_bull) >= 50 and len(momentum_bear) >= 50 and
+                    len(pullback_bull) >= 50 and len(pullback_bear) >= 50):
                     break
             
             # Stop if too many errors
             if errors > 20:
                 break
                 
-            if (len(momentum_bull) >= 25 and len(momentum_bear) >= 25 and
-                len(pullback_bull) >= 25 and len(pullback_bear) >= 25):
+            if (len(momentum_bull) >= 50 and len(momentum_bear) >= 50 and
+                len(pullback_bull) >= 50 and len(pullback_bear) >= 50):
                 break
         
         progress_bar.progress(1.0)
