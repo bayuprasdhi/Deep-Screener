@@ -329,7 +329,7 @@ col1, col2 = st.columns([1, 3])
 with col1:
     if st.button("🔄 Refresh Now", type="primary", use_container_width=True):
         with st.spinner(f"Scanning {timeframe.upper()} timeframe..."):
-            exchange = ccxt.bybit({'enableRateLimit': True})
+            exchange = ccxt.gateio({'enableRateLimit': True})
             mom_bull, mom_bear, pull_bull, pull_bear = scan_market(exchange, timeframe)
             st.session_state.momentum_bull = mom_bull
             st.session_state.momentum_bear = mom_bear
